@@ -3,7 +3,7 @@
 # 🍐 PEAR: Pairwise Evaluation for Automatic Relative Scoring in Machine Translation
 
 [![ACL 2026](https://img.shields.io/badge/ACL-2026-2f6fdd)](https://2026.aclweb.org/)
-[![ACL Anthology](https://img.shields.io/badge/ACL%20Anthology-PEAR-b31b1b)](https://aclanthology.org/2026.acl-long.1953/)
+[![ACL Anthology](https://img.shields.io/badge/ACL%20Anthology-paper-b31b1b)](https://aclanthology.org/2026.acl-long.1953/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Collection-ffcc4d)](https://huggingface.co/collections/Prosho/pear)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python](https://img.shields.io/badge/Python-%E2%89%A53.12-blue)](https://www.python.org/)
