@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pear-mt"
+version = "0.1.0"
+description = "Lightweight inference package for PEAR machine translation metrics."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [{name = "Prosho"}]
+dependencies = [
+  "huggingface-hub>=0.23",
+  "numpy>=1.24",
+  "pytorch-lightning>=2.0",
+  "PyYAML>=6.0",
+  "torch>=2.0",
+  "transformers>=4.40",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black>=24.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/prosho-97/pairwise-metric"
+Paper = "https://aclanthology.org/2026.acl-long.1953/"
+Models = "https://huggingface.co/collections/Prosho/pear"
+
+[project.scripts]
+pear = "pear.commands.main:main"
+pear-mt = "pear.commands.main:main"
+
+[tool.setuptools.packages.find]
+include = ["pear*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+include = '\.pyi?$'
