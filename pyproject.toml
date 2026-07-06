@@ -9,8 +9,7 @@ description = "Inference package for PEAR machine translation metrics."
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "Apache-2.0"}
-author = "Lorenzo Proietti"
-author_email="lproietti@diag.uniroma1.it"
+authors = [{name = "Prosho"}]
 dependencies = [
   "huggingface-hub>=0.23",
   "numpy>=1.24",
