@@ -35,6 +35,7 @@ def load_metric(
     """
     model_name = str(model)
     model_path = Path(model).expanduser() if not isinstance(model, Path) else model
+    trusted_checkpoint = False
     if model_path.is_file():
         if revision is not None:
             raise ValueError(
@@ -44,10 +45,14 @@ def load_metric(
         checkpoint_path = model_path
     else:
         repo_id = DEFAULT_HF_MODELS.get(model_name, model_name)
+        official_revision = DEFAULT_HF_REVISIONS.get(repo_id)
         if revision is None:
             revision = DEFAULT_HF_REVISIONS.get(
                 model_name, DEFAULT_HF_REVISIONS.get(repo_id)
             )
+        trusted_checkpoint = (
+            official_revision is not None and revision == official_revision
+        )
         checkpoint_path = Path(
             download_model(
                 repo_id,
@@ -62,6 +67,7 @@ def load_metric(
         local_files_only=local_files_only,
         class_identifier="pairwise_metric",
         encoder_revision=encoder_revision,
+        trusted_checkpoint=trusted_checkpoint,
     )
 
 

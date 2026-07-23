@@ -5,7 +5,7 @@
 [![ACL 2026](https://img.shields.io/badge/ACL-2026-2f6fdd)](https://2026.aclweb.org/)
 [![ACL Anthology](https://img.shields.io/badge/ACL%20Anthology-paper-b31b1b)](https://aclanthology.org/2026.acl-long.1953/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Collection-ffcc4d)](https://huggingface.co/collections/Prosho/pear)
-[![PyPI](https://img.shields.io/pypi/v/pear-mt?cacheSeconds=300)](https://pypi.org/project/pear-mt/)
+[![PyPI](https://img.shields.io/badge/PyPI-v1.0.2-blue)](https://pypi.org/project/pear-mt/)
 [![Python](https://img.shields.io/pypi/pyversions/pear-mt?cacheSeconds=300)](https://pypi.org/project/pear-mt/)
 [![CI](https://github.com/prosho-97/pear/actions/workflows/ci.yml/badge.svg)](https://github.com/prosho-97/pear/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -70,6 +70,12 @@ metric = pear.load_metric("/path/to/checkpoints/model.ckpt")
 The official `pear` and `pear-xl` aliases use checkpoint and encoder revisions
 pinned by this package. This keeps their results stable even when files on the
 Hugging Face Hub change.
+
+The aliases and their full `Prosho/pear` and `Prosho/pear-xl` repository IDs
+load those immutable official snapshots as trusted Lightning checkpoints.
+PEAR therefore suppresses PyTorch's full-checkpoint deserialization warning for
+those exact revisions. Local checkpoints, third-party repositories, and
+revision overrides retain PyTorch's default security behavior.
 
 For another Hugging Face repository, PEAR follows that repository's default
 branch unless you provide revisions explicitly. `revision` pins the PEAR

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pear-mt"
-version = "1.0.1"
+version = "1.0.2"
 description = "Inference package for PEAR machine translation metrics."
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
   "huggingface-hub>=0.23",
   "numpy>=1.26",
-  "pytorch-lightning>=2.4",
+  "pytorch-lightning>=2.6.1",
   "PyYAML>=6.0",
   "torch>=2.5",
   "transformers>=4.40,<6",

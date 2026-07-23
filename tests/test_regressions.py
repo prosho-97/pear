@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import gc
 import json
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -152,7 +153,14 @@ def test_released_checkpoints_match_440_scores_and_key_mismatches(
     for alias in ("pear", "pear-xl"):
         checkpoint_path = Path(download_model(alias, saving_directory=cache_dir))
         checkpoint_keys = _checkpoint_state_keys(checkpoint_path)
-        metric = load_metric(alias, cache_dir=cache_dir)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            metric = load_metric(alias, cache_dir=cache_dir)
+        assert not any(
+            "You are using `torch.load` with `weights_only=False`"
+            in str(warning.message)
+            for warning in caught
+        )
         parameter = next(metric.parameters())
         model_dtype = str(parameter.dtype).removeprefix("torch.")
         model_device = str(parameter.device)

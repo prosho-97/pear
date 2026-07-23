@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 from typing import Union
 
@@ -53,8 +54,14 @@ def load_from_checkpoint(
     local_files_only: bool = False,
     class_identifier: str = "pairwise_metric",
     encoder_revision: str | None = None,
+    trusted_checkpoint: bool = False,
 ) -> MetricModel:
-    """Load a PEAR pairwise metric model from a Lightning checkpoint."""
+    """Load a PEAR pairwise metric model from a Lightning checkpoint.
+
+    ``trusted_checkpoint`` intentionally enables full Lightning checkpoint
+    deserialization. PEAR sets it only for the immutable revisions of its
+    official Hugging Face repositories.
+    """
     checkpoint_path = Path(checkpoint_path)
     if not checkpoint_path.is_file():
         raise FileNotFoundError(f"Invalid checkpoint path: {checkpoint_path}")
@@ -73,13 +80,25 @@ def load_from_checkpoint(
     checkpoint_kwargs = {}
     if encoder_revision is not None:
         checkpoint_kwargs["encoder_revision"] = encoder_revision
+    if trusted_checkpoint:
+        checkpoint_kwargs["weights_only"] = False
 
-    return model_class.load_from_checkpoint(
-        checkpoint_path,
-        load_pretrained_weights=False,
-        hparams_file=hparams_file if reload_hparams else None,
-        map_location=torch.device("cpu"),
-        strict=strict,
-        local_files_only=local_files_only,
-        **checkpoint_kwargs,
-    )
+    with warnings.catch_warnings():
+        if trusted_checkpoint:
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    r"You are using `torch\.load` with "
+                    r"`weights_only=False`.*"
+                ),
+            )
+        return model_class.load_from_checkpoint(
+            checkpoint_path,
+            load_pretrained_weights=False,
+            hparams_file=hparams_file if reload_hparams else None,
+            map_location=torch.device("cpu"),
+            strict=strict,
+            local_files_only=local_files_only,
+            **checkpoint_kwargs,
+        )
