@@ -5,8 +5,10 @@
 [![ACL 2026](https://img.shields.io/badge/ACL-2026-2f6fdd)](https://2026.aclweb.org/)
 [![ACL Anthology](https://img.shields.io/badge/ACL%20Anthology-paper-b31b1b)](https://aclanthology.org/2026.acl-long.1953/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Collection-ffcc4d)](https://huggingface.co/collections/Prosho/pear)
+[![PyPI](https://img.shields.io/pypi/v/pear-mt)](https://pypi.org/project/pear-mt/)
+[![Python](https://img.shields.io/pypi/pyversions/pear-mt)](https://pypi.org/project/pear-mt/)
+[![CI](https://github.com/prosho-97/pear/actions/workflows/ci.yml/badge.svg)](https://github.com/prosho-97/pear/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Python](https://img.shields.io/badge/Python-%E2%89%A53.12-blue)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000)](https://github.com/psf/black)
 
 </div>
@@ -20,18 +22,31 @@ PEAR reframes reference-free machine translation evaluation as a graded pairwise
 
 ## Installation
 
-Install from a local clone:
+PEAR supports Python 3.12 and 3.13. Install the published package from PyPI:
+
+```bash
+python -m pip install pear-mt
+```
+
+The PyPI distribution is named `pear-mt`; the Python import package is named
+`pear`, and the primary command-line program is also `pear`:
+
+```python
+import pear
+```
+
+To install from a local clone instead:
 
 ```bash
 git clone https://github.com/prosho-97/pear.git
 cd pear
-pip install .
+python -m pip install .
 ```
 
 For local development, install the development extra too:
 
 ```bash
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ```
 
 ## Loading a model
@@ -49,6 +64,41 @@ You can also pass a Hugging Face repository ID or a local PEAR model checkpoint 
 metric = pear.load_metric("Prosho/pear")
 metric = pear.load_metric("/path/to/checkpoints/model.ckpt")
 ```
+
+### Reproducible model revisions
+
+The official `pear` and `pear-xl` aliases use checkpoint and encoder revisions
+pinned by this package. This keeps their results stable even when files on the
+Hugging Face Hub change.
+
+For another Hugging Face repository, PEAR follows that repository's default
+branch unless you provide revisions explicitly. `revision` pins the PEAR
+checkpoint repository; `encoder_revision` pins the underlying Transformers
+encoder. A full commit hash gives the strongest reproducibility:
+
+```python
+metric = pear.load_metric(
+    "organization/custom-pear",
+    revision="<checkpoint-commit>",
+    encoder_revision="<encoder-commit>",
+)
+```
+
+The same controls are available from the CLI:
+
+```bash
+pear score \
+    --hf-model organization/custom-pear \
+    --revision <checkpoint-commit> \
+    --encoder-revision <encoder-commit> \
+    --input pairs.tsv \
+    --output scored.tsv
+```
+
+Passing either option overrides the corresponding default. Local checkpoint
+paths do not use a Hub checkpoint revision, although
+`encoder_revision` can still pin an encoder that the checkpoint configuration
+loads from the Hub.
 
 ## Pairwise QE scoring
 
@@ -158,15 +208,42 @@ pear mbr --checkpoint /path/to/model.ckpt --input nbest.jsonl --output selected.
 Install the development extra before running formatter checks:
 
 ```bash
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ```
 
 Then run:
 
 ```bash
 python -m black --check pear
+python -m pytest
 python -m compileall pear
 ```
+
+Network tokenizer regressions use immutable encoder snapshots and run in CI
+against both Transformers 4.40.2 and the latest supported 5.x release. The
+multi-gigabyte checkpoint regression remains opt-in. Before creating a release
+tag, record its baseline under Transformers 4.40.2:
+
+```bash
+python -m pytest \
+    tests/test_regressions.py::test_released_checkpoints_match_440_scores_and_key_mismatches \
+    --run-checkpoint-integration \
+    --write-checkpoint-baseline=/tmp/pear-checkpoints-4.40.2.json
+```
+
+Then, on the same hardware and dtype under the latest Transformers 5.x, compare
+against that file:
+
+```bash
+python -m pytest \
+    tests/test_regressions.py::test_released_checkpoints_match_440_scores_and_key_mismatches \
+    --run-checkpoint-integration \
+    --checkpoint-baseline=/tmp/pear-checkpoints-4.40.2.json
+```
+
+The comparison requires the same checkpoint-key mismatch sets, finite scores,
+preference directions and rankings, and scores within `rtol=1e-4` and
+`atol=1e-4`.
 
 ## Citation
 

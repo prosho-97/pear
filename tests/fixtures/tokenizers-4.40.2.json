@@ -1,0 +1,60 @@
+{
+  "models": {
+    "infoxlm-large": {
+      "attention_mask": [
+        [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
+      ],
+      "input_ids": [
+        [0, 68311, 153648, 219836, 5, 2, 1, 1, 1, 1, 1, 1, 1],
+        [0, 180276, 4, 10724, 96, 26, 217723, 565, 6024, 65279, 13, 5, 2],
+        [0, 6, 107068, 118484, 62193, 30, 2, 1, 1, 1, 1, 1, 1],
+        [0, 6, 105001, 359, 68030, 250, 29061, 50982, 5, 2, 1, 1, 1]
+      ],
+      "repo_id": "microsoft/infoxlm-large",
+      "revision": "d616d637f0720deda963cebbfc630657d2b7d3ae",
+      "special_token_ids": {
+        "bos_token_id": 0,
+        "eos_token_id": 2,
+        "mask_token_id": 250001,
+        "pad_token_id": 1,
+        "unk_token_id": 3
+      },
+      "tokenizer_class": "XLMRobertaTokenizerFast"
+    },
+    "xlm-roberta-xl": {
+      "attention_mask": [
+        [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
+      ],
+      "input_ids": [
+        [0, 68311, 153648, 219836, 5, 2, 1, 1, 1, 1, 1, 1, 1],
+        [0, 180276, 4, 10724, 96, 26, 217723, 565, 6024, 65279, 13, 5, 2],
+        [0, 6, 107068, 118484, 62193, 30, 2, 1, 1, 1, 1, 1, 1],
+        [0, 6, 105001, 359, 68030, 250, 29061, 50982, 5, 2, 1, 1, 1]
+      ],
+      "repo_id": "facebook/xlm-roberta-xl",
+      "revision": "aa5d120255845efeebc9b7f42822a1dd0f9ece9d",
+      "special_token_ids": {
+        "bos_token_id": 0,
+        "eos_token_id": 2,
+        "mask_token_id": 250001,
+        "pad_token_id": 1,
+        "unk_token_id": 3
+      },
+      "tokenizer_class": "XLMRobertaTokenizerFast"
+    }
+  },
+  "schema_version": 1,
+  "segments": [
+    "Machine translation evaluation.",
+    "Già, perché l’umanità è multilingue.",
+    "机器翻译评估。",
+    "تقييم الترجمة الآلية."
+  ],
+  "transformers_version": "4.40.2"
+}

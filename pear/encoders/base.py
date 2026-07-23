@@ -64,12 +64,21 @@ class Encoder(nn.Module, metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def from_pretrained(cls, pretrained_model: str) -> "Encoder":
+    def from_pretrained(
+        cls,
+        pretrained_model: str,
+        load_pretrained_weights: bool = True,
+        local_files_only: bool = False,
+        revision: str | None = None,
+    ) -> "Encoder":
         """
         Function that loads a pretrained encoder and the respective tokenizer.
 
         Args:
             pretrained_model (str): Name of the pretrained model.
+            load_pretrained_weights (bool): Whether to load pretrained weights.
+            local_files_only (bool): Whether to only use locally cached files.
+            revision (str | None): Hugging Face revision to load.
 
         Returns:
             Encoder: Pretrained model from Hugging Face.

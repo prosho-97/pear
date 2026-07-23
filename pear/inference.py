@@ -5,16 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, Literal, Sequence
 
-from pear.models import download_model, load_from_checkpoint
+from pear.models import (
+    DEFAULT_HF_MODELS,
+    DEFAULT_HF_REVISIONS,
+    download_model,
+    load_from_checkpoint,
+)
 from pear.models.base import MetricModel
 
 PearMode = Literal["single", "both"]
-
-
-DEFAULT_HF_MODELS = {
-    "pear": "Prosho/pear",
-    "pear-xl": "Prosho/pear-xl",
-}
 
 
 def load_metric(
@@ -23,23 +22,38 @@ def load_metric(
     cache_dir: str | Path | None = None,
     local_files_only: bool = False,
     strict: bool = False,
+    revision: str | None = None,
+    encoder_revision: str | None = None,
 ) -> MetricModel:
     """Load a PEAR checkpoint from a local path or from Hugging Face.
 
     ``model`` may be a checkpoint path, a Hugging Face repo id, or one of the
     aliases ``pear``/``pear-xl``. The public checkpoints are expected under the
-    ``Prosho`` Hugging Face namespace.
+    ``Prosho`` Hugging Face namespace. Official repositories default to
+    immutable revisions; pass ``revision`` and/or ``encoder_revision`` to
+    override the checkpoint and base-encoder revisions.
     """
+    model_name = str(model)
     model_path = Path(model).expanduser() if not isinstance(model, Path) else model
     if model_path.is_file():
+        if revision is not None:
+            raise ValueError(
+                "revision is only valid when loading a Hugging Face model, "
+                "not a local checkpoint."
+            )
         checkpoint_path = model_path
     else:
-        repo_id = DEFAULT_HF_MODELS.get(str(model), str(model))
+        repo_id = DEFAULT_HF_MODELS.get(model_name, model_name)
+        if revision is None:
+            revision = DEFAULT_HF_REVISIONS.get(
+                model_name, DEFAULT_HF_REVISIONS.get(repo_id)
+            )
         checkpoint_path = Path(
             download_model(
                 repo_id,
                 saving_directory=cache_dir,
                 local_files_only=local_files_only,
+                revision=revision,
             )
         )
     return load_from_checkpoint(
@@ -47,6 +61,7 @@ def load_metric(
         strict=strict,
         local_files_only=local_files_only,
         class_identifier="pairwise_metric",
+        encoder_revision=encoder_revision,
     )
 
 

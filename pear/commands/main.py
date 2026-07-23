@@ -7,13 +7,15 @@ import csv
 import json
 from pathlib import Path
 
+from pear import __version__
 from pear.inference import load_metric, score_pairwise, score_reference_anchored
 from pear.mbr import pear_utility_matrix, select_mbr_hypothesis
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        prog="pear", description="Run PEAR MT metric inference."
+    parser = argparse.ArgumentParser(description="Run PEAR MT metric inference.")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -98,6 +100,14 @@ def _add_model_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--cache-dir", type=Path)
     parser.add_argument("--local-files-only", action="store_true")
+    parser.add_argument(
+        "--revision",
+        help="Hugging Face checkpoint revision (branch, tag, or commit SHA).",
+    )
+    parser.add_argument(
+        "--encoder-revision",
+        help="Hugging Face base-encoder revision (branch, tag, or commit SHA).",
+    )
 
 
 def _parse_gpus(value: str) -> int | str:
@@ -128,6 +138,8 @@ def _score(args: argparse.Namespace) -> None:
         _resolve_model_arg(args),
         cache_dir=args.cache_dir,
         local_files_only=args.local_files_only,
+        revision=args.revision,
+        encoder_revision=args.encoder_revision,
     )
     rows = list(csv.DictReader(args.input.open(newline=""), delimiter="\t"))
     sources = [row["src"] for row in rows]
@@ -172,6 +184,8 @@ def _mbr(args: argparse.Namespace) -> None:
         _resolve_model_arg(args),
         cache_dir=args.cache_dir,
         local_files_only=args.local_files_only,
+        revision=args.revision,
+        encoder_revision=args.encoder_revision,
     )
     output = args.output or args.input.with_suffix(".pear-mbr.jsonl")
     with args.input.open() as src, output.open("w") as out:

@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-compatibility:
+    name: Source / ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_DISABLE_XET: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Python 3.12, minimum dependency boundary
+            python-version: "3.12"
+            torch: "torch==2.4.*"
+            transformers: "transformers==4.40.2"
+          - name: Python 3.12, Transformers 5
+            python-version: "3.12"
+            torch: "torch"
+            transformers: "transformers>=5,<6"
+          - name: Python 3.13, Transformers 5
+            python-version: "3.13"
+            torch: "torch"
+            transformers: "transformers>=5,<6"
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the selected dependency boundary
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            "${{ matrix.torch }}"
+          python -m pip install "${{ matrix.transformers }}"
+          python -m pip install -e ".[dev]"
+
+      - name: Run tests and import checks
+        run: |
+          python -m pytest -m "not network"
+          python -m pytest \
+            -m "network and not checkpoint_integration" \
+            --run-network \
+            --tokenizer-baseline=tests/fixtures/tokenizers-4.40.2.json
+          python -m compileall -q pear
+          python -m pip check
+          python -c "from importlib.metadata import version; import pear; assert pear.__version__ == version('pear-mt') == '1.0.0'"
+          test "$(pear --version)" = "pear 1.0.0"
+          test "$(pear-mt --version)" = "pear-mt 1.0.0"
+          pear --help
+          pear-mt --help
+
+  build-distributions:
+    name: Build wheel and source distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Build and inspect distributions
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          python -m twine check --strict dist/*
+          python - <<'PY'
+          from pathlib import Path
+
+          files = [path for path in Path("dist").iterdir() if path.is_file()]
+          wheels = [path for path in files if path.suffix == ".whl"]
+          sdists = [path for path in files if path.name.endswith(".tar.gz")]
+          if len(files) != 2 or len(wheels) != 1 or len(sdists) != 1:
+              raise SystemExit(
+                  f"Expected exactly one wheel and one sdist; found: {files}"
+              )
+          PY
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  test-artifacts:
+    name: Install ${{ matrix.artifact }} / Python ${{ matrix.python-version }}
+    needs: build-distributions
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+          - "3.13"
+        artifact:
+          - wheel
+          - sdist
+        include:
+          - artifact: wheel
+            pattern: "*.whl"
+          - artifact: sdist
+            pattern: "*.tar.gz"
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distributions
+          path: dist/
+
+      - name: Install the selected artifact
+        env:
+          ARTIFACT_PATTERN: ${{ matrix.pattern }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            torch
+          artifact="$(find dist -maxdepth 1 -type f -name "$ARTIFACT_PATTERN" -print -quit)"
+          test -n "$artifact"
+          python -m pip install --no-cache-dir "$artifact"
+
+      - name: Verify the installed distribution
+        run: |
+          python -c "from importlib.metadata import distribution, version; import pear; assert distribution('pear-mt').metadata['Name'] == 'pear-mt'; assert pear.__version__ == version('pear-mt') == '1.0.0'"
+          python -m pip check
+          test "$(pear --version)" = "pear 1.0.0"
+          test "$(pear-mt --version)" = "pear-mt 1.0.0"
+          pear --help
+          pear-mt --help

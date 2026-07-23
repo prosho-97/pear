@@ -1,31 +1,46 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pear"
-version = "1.0"
+name = "pear-mt"
+version = "1.0.0"
 description = "Inference package for PEAR machine translation metrics."
 readme = "README.md"
-requires-python = ">=3.12"
-license = {text = "Apache-2.0"}
+requires-python = ">=3.12,<3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{name = "Lorenzo Proietti"}]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
   "huggingface-hub>=0.23",
-  "numpy>=1.24",
-  "pytorch-lightning>=2.0",
+  "numpy>=1.26",
+  "pytorch-lightning>=2.4",
   "PyYAML>=6.0",
-  "torch>=2.0",
-  "transformers>=4.40",
+  "torch>=2.4",
+  "transformers>=4.40,<6",
 ]
 
 [project.optional-dependencies]
 dev = [
   "black>=24.0",
+  "build>=1.2",
+  "pytest>=8.0",
+  "twine>=5.1",
 ]
 
 [project.urls]
 Homepage = "https://github.com/prosho-97/pear"
+Repository = "https://github.com/prosho-97/pear"
+Issues = "https://github.com/prosho-97/pear/issues"
 Paper = "https://aclanthology.org/2026.acl-long.1953/"
 Models = "https://huggingface.co/collections/Prosho/pear"
 

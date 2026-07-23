@@ -8,9 +8,9 @@ from typing import List, Union
 
 import torch
 from transformers import (
+    AutoTokenizer,
     XLMRobertaConfig,
     XLMRobertaModel,
-    XLMRobertaTokenizerFast,
     XLMRobertaXLModel,
 )
 
@@ -32,20 +32,28 @@ class XLMREncoder(Encoder):
         pretrained_model: str,
         load_pretrained_weights: bool = True,
         local_files_only: bool = False,
+        revision: str | None = None,
     ) -> None:
         super().__init__()
-        self.tokenizer = XLMRobertaTokenizerFast.from_pretrained(
-            pretrained_model, local_files_only=local_files_only
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model,
+            revision=revision,
+            local_files_only=local_files_only,
         )
         self.model: Union[XLMRobertaModel, XLMRobertaXLModel]
         if load_pretrained_weights:
             self.model = XLMRobertaModel.from_pretrained(
-                pretrained_model, add_pooling_layer=False
+                pretrained_model,
+                add_pooling_layer=False,
+                revision=revision,
+                local_files_only=local_files_only,
             )
         else:
             self.model = XLMRobertaModel(
                 XLMRobertaConfig.from_pretrained(
-                    pretrained_model, local_files_only=local_files_only
+                    pretrained_model,
+                    revision=revision,
+                    local_files_only=local_files_only,
                 ),
                 add_pooling_layer=False,
             )
@@ -96,6 +104,7 @@ class XLMREncoder(Encoder):
         pretrained_model: str,
         load_pretrained_weights: bool = True,
         local_files_only: bool = False,
+        revision: str | None = None,
     ) -> Encoder:
         """Function that loads a pretrained encoder from Hugging Face.
 
@@ -103,11 +112,17 @@ class XLMREncoder(Encoder):
             pretrained_model (str):Name of the pretrain model to be loaded.
             load_pretrained_weights (bool): If set to True loads the pretrained weights from Hugging Face. Default: `True`.
             local_files_only (bool): Whether or not to only look at local files. Default: `False`.
+            revision (str | None): Hugging Face revision to load. Default: `None`.
 
         Returns:
             Encoder: XLMREncoder object.
         """
-        return XLMREncoder(pretrained_model, load_pretrained_weights, local_files_only)
+        return XLMREncoder(
+            pretrained_model,
+            load_pretrained_weights,
+            local_files_only,
+            revision,
+        )
 
     def layerwise_lr(self, lr: float, decay: float) -> List:
         """

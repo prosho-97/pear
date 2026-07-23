@@ -1,5 +1,7 @@
 """PEAR-MT: pairwise QE metrics for machine translation evaluation."""
 
+from importlib.metadata import PackageNotFoundError, version
+
 from pear.inference import (
     build_pairwise_samples,
     build_reference_anchored_samples,
@@ -10,7 +12,13 @@ from pear.inference import (
 from pear.mbr import pear_utility_matrix, select_mbr_hypothesis
 from pear.models import download_model, load_from_checkpoint
 
+try:
+    __version__ = version("pear-mt")
+except PackageNotFoundError:
+    __version__ = "0+unknown"
+
 __all__ = [
+    "__version__",
     "build_pairwise_samples",
     "build_reference_anchored_samples",
     "download_model",

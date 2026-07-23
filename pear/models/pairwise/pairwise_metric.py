@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from pear.models.base import MetricModel
+from pear.models.base import MetricModel, resolve_encoder_revision
 from pear.models.utils import Prediction
 from pear.modules import FeedForward
 
@@ -31,6 +31,7 @@ class PairwiseMetric(MetricModel):
         dropout: float = 0.1,
         load_pretrained_weights: bool = True,
         local_files_only: bool = False,
+        encoder_revision: str | None = None,
         hidden_sizes: Optional[List[int]] = None,
         activations: str = "GELU",
         task: str = "regression",
@@ -43,6 +44,7 @@ class PairwiseMetric(MetricModel):
         final_init_bias: Optional[float] = 0.0,
         **unused_hparams: Any,
     ) -> None:
+        encoder_revision = resolve_encoder_revision(pretrained_model, encoder_revision)
         super().__init__(
             keep_embeddings_frozen=keep_embeddings_frozen,
             encoder_model=encoder_model,
@@ -50,6 +52,7 @@ class PairwiseMetric(MetricModel):
             blend=blend,
             load_pretrained_weights=load_pretrained_weights,
             local_files_only=local_files_only,
+            encoder_revision=encoder_revision,
             **unused_hparams,
         )
         self.save_hyperparameters()

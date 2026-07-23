@@ -1,0 +1,315 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-distributions:
+    name: Validate tag and build distributions
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Validate project name, version, and tag
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python -m pip install --upgrade pip packaging
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          from packaging.utils import canonicalize_name
+          from packaging.version import Version
+
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          name = project["name"]
+          raw_version = project["version"]
+          version = Version(raw_version)
+          tag = os.environ["RELEASE_TAG"]
+
+          if name != "pear-mt" or canonicalize_name(name) != "pear-mt":
+              raise SystemExit(
+                  f"Expected project name 'pear-mt', found {name!r}."
+              )
+          if tag != f"v{raw_version}":
+              raise SystemExit(
+                  f"Tag {tag!r} must exactly match project version "
+                  f"'v{raw_version}'."
+              )
+          if str(version) != raw_version:
+              raise SystemExit(
+                  f"Project version {raw_version!r} is not normalized; "
+                  f"use {str(version)!r}."
+              )
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write(f"version={raw_version}\n")
+          PY
+
+      - name: Build and strictly check distributions
+        env:
+          EXPECTED_VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          python -m pip install build twine
+          python -m build
+          python -m twine check --strict dist/*
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from packaging.utils import (
+              canonicalize_name,
+              parse_sdist_filename,
+              parse_wheel_filename,
+          )
+          from packaging.version import Version
+
+          files = [path for path in Path("dist").iterdir() if path.is_file()]
+          wheels = [path for path in files if path.suffix == ".whl"]
+          sdists = [path for path in files if path.name.endswith(".tar.gz")]
+          if len(files) != 2 or len(wheels) != 1 or len(sdists) != 1:
+              raise SystemExit(
+                  f"Expected exactly one wheel and one sdist; found: {files}"
+              )
+
+          expected_name = "pear-mt"
+          expected_version = Version(os.environ["EXPECTED_VERSION"])
+          wheel_name, wheel_version, _, _ = parse_wheel_filename(wheels[0].name)
+          sdist_name, sdist_version = parse_sdist_filename(sdists[0].name)
+          for kind, name, version in (
+              ("wheel", wheel_name, wheel_version),
+              ("sdist", sdist_name, sdist_version),
+          ):
+              if canonicalize_name(name) != expected_name:
+                  raise SystemExit(f"Unexpected {kind} project name: {name}")
+              if version != expected_version:
+                  raise SystemExit(f"Unexpected {kind} version: {version}")
+          PY
+
+      - name: Upload immutable release artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  test-artifacts:
+    name: Install ${{ matrix.artifact }} / Python ${{ matrix.python-version }}
+    needs: build-distributions
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+          - "3.13"
+        artifact:
+          - wheel
+          - sdist
+        include:
+          - artifact: wheel
+            pattern: "*.whl"
+          - artifact: sdist
+            pattern: "*.tar.gz"
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distributions
+          path: dist/
+
+      - name: Install the selected artifact
+        env:
+          ARTIFACT_PATTERN: ${{ matrix.pattern }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            torch
+          artifact="$(find dist -maxdepth 1 -type f -name "$ARTIFACT_PATTERN" -print -quit)"
+          test -n "$artifact"
+          python -m pip install --no-cache-dir "$artifact"
+
+      - name: Verify the installed distribution
+        env:
+          EXPECTED_VERSION: ${{ needs.build-distributions.outputs.version }}
+        run: |
+          python -c "import os; from importlib.metadata import distribution, version; import pear; assert distribution('pear-mt').metadata['Name'] == 'pear-mt'; assert pear.__version__ == version('pear-mt') == os.environ['EXPECTED_VERSION']"
+          python -m pip check
+          test "$(pear --version)" = "pear $EXPECTED_VERSION"
+          test "$(pear-mt --version)" = "pear-mt $EXPECTED_VERSION"
+          pear --help
+          pear-mt --help
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs:
+      - build-distributions
+      - test-artifacts
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/pear-mt
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distributions
+          path: dist/
+
+      - name: Publish distributions with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+          attestations: false
+          skip-existing: true
+
+  verify-testpypi:
+    name: Verify remote TestPyPI installation
+    needs:
+      - build-distributions
+      - publish-testpypi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Download the tagged distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distributions
+          path: built-dist/
+
+      - name: Download and match the published TestPyPI artifacts
+        env:
+          RELEASE_VERSION: ${{ needs.build-distributions.outputs.version }}
+        run: |
+          python -m pip install --upgrade pip
+          mkdir testpypi-dist
+          downloaded=false
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from urllib.request import urlopen
+
+          version = os.environ["RELEASE_VERSION"]
+          with urlopen(
+              f"https://test.pypi.org/pypi/pear-mt/{version}/json",
+              timeout=30,
+          ) as response:
+              release = json.load(response)
+
+          built = {
+              path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+              for path in Path("built-dist").iterdir()
+              if path.is_file()
+          }
+          published = {
+              item["filename"]: item["digests"]["sha256"]
+              for item in release["urls"]
+          }
+          if published != built:
+              raise SystemExit(
+                  "TestPyPI artifacts do not exactly match the tagged build: "
+                  f"built={built}, published={published}"
+              )
+
+          for item in release["urls"]:
+              destination = Path("testpypi-dist", item["filename"])
+              with urlopen(item["url"], timeout=60) as response:
+                  destination.write_bytes(response.read())
+              digest = hashlib.sha256(destination.read_bytes()).hexdigest()
+              if digest != built[destination.name]:
+                  raise SystemExit(f"Downloaded artifact hash mismatch: {destination}")
+          PY
+            then
+              downloaded=true
+              break
+            fi
+            echo "TestPyPI artifacts are not ready (attempt $attempt/12)."
+            sleep 10
+          done
+          test "$downloaded" = true
+          wheel="$(find testpypi-dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          test -n "$wheel"
+          python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            torch
+          python -m pip install --no-cache-dir "$wheel"
+
+      - name: Verify the remotely installed distribution
+        env:
+          EXPECTED_VERSION: ${{ needs.build-distributions.outputs.version }}
+        run: |
+          python -c "import os; from importlib.metadata import distribution, version; import pear; assert distribution('pear-mt').metadata['Name'] == 'pear-mt'; assert pear.__version__ == version('pear-mt') == os.environ['EXPECTED_VERSION']"
+          python -m pip check
+          test "$(pear --version)" = "pear $EXPECTED_VERSION"
+          test "$(pear-mt --version)" = "pear-mt $EXPECTED_VERSION"
+          pear --help
+          pear-mt --help
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs:
+      - build-distributions
+      - test-artifacts
+      - verify-testpypi
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pear-mt
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download the tested distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-distributions
+          path: dist/
+
+      - name: Publish distributions with Trusted Publishing and attestations
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: dist/
+          attestations: true

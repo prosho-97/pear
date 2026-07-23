@@ -28,6 +28,20 @@ from .utils import OrderedSampler, Prediction, restore_list_order
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_ENCODER_REVISIONS = {
+    "microsoft/infoxlm-large": "d616d637f0720deda963cebbfc630657d2b7d3ae",
+    "facebook/xlm-roberta-xl": "aa5d120255845efeebc9b7f42822a1dd0f9ece9d",
+}
+
+
+def resolve_encoder_revision(
+    pretrained_model: str, encoder_revision: str | None
+) -> str | None:
+    """Resolve immutable revisions for the encoders used by official models."""
+    if encoder_revision is not None:
+        return encoder_revision
+    return DEFAULT_ENCODER_REVISIONS.get(pretrained_model)
+
 
 class MetricModel(ptl.LightningModule, metaclass=abc.ABCMeta):
     """Shared inference functionality for released PEAR checkpoints.
@@ -46,9 +60,11 @@ class MetricModel(ptl.LightningModule, metaclass=abc.ABCMeta):
         blend: str = "last",
         load_pretrained_weights: bool = True,
         local_files_only: bool = False,
+        encoder_revision: str | None = None,
         **unused_hparams: Any,
     ) -> None:
         super().__init__()
+        encoder_revision = resolve_encoder_revision(pretrained_model, encoder_revision)
         self.save_hyperparameters()
 
         if self.hparams["blend"] != "last":
@@ -58,7 +74,10 @@ class MetricModel(ptl.LightningModule, metaclass=abc.ABCMeta):
             )
 
         self.encoder = str2encoder[self.hparams["encoder_model"]].from_pretrained(
-            self.hparams["pretrained_model"], load_pretrained_weights, local_files_only
+            self.hparams["pretrained_model"],
+            load_pretrained_weights=load_pretrained_weights,
+            local_files_only=local_files_only,
+            revision=encoder_revision,
         )
 
         if self.hparams["keep_embeddings_frozen"]:
