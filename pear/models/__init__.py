@@ -88,10 +88,7 @@ def load_from_checkpoint(
             warnings.filterwarnings(
                 "ignore",
                 category=FutureWarning,
-                message=(
-                    r"You are using `torch\.load` with "
-                    r"`weights_only=False`.*"
-                ),
+                message=r"You are using `torch\.load` with `weights_only=False`.*",
             )
         return model_class.load_from_checkpoint(
             checkpoint_path,
