@@ -39,7 +39,7 @@ def test_public_version_matches_installed_distribution_metadata() -> None:
     except PackageNotFoundError:
         assert pear.__version__ == "0+unknown"
     else:
-        assert installed_version == "1.0.0"
+        assert installed_version == "1.0.1"
         assert pear.__version__ == installed_version
 
 
