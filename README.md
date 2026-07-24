@@ -5,8 +5,8 @@
 [![ACL 2026](https://img.shields.io/badge/ACL-2026-2f6fdd)](https://2026.aclweb.org/)
 [![ACL Anthology](https://img.shields.io/badge/ACL%20Anthology-paper-b31b1b)](https://aclanthology.org/2026.acl-long.1953/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Collection-ffcc4d)](https://huggingface.co/collections/Prosho/pear)
-[![PyPI](https://img.shields.io/badge/PyPI-v1.0.2-blue)](https://pypi.org/project/pear-mt/)
-[![Python](https://img.shields.io/pypi/pyversions/pear-mt?cacheSeconds=300)](https://pypi.org/project/pear-mt/)
+[![PyPI](https://img.shields.io/badge/PyPI-v1.1.0-blue)](https://pypi.org/project/pear-mt/)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://pypi.org/project/pear-mt/)
 [![CI](https://github.com/prosho-97/pear/actions/workflows/ci.yml/badge.svg)](https://github.com/prosho-97/pear/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000)](https://github.com/psf/black)
@@ -22,7 +22,7 @@ PEAR reframes reference-free machine translation evaluation as a graded pairwise
 
 ## Installation
 
-PEAR supports Python 3.12 and 3.13. Install the published package from PyPI:
+PEAR supports Python 3.11, 3.12, and 3.13. Install the published package from PyPI:
 
 ```bash
 python -m pip install pear-mt
@@ -220,7 +220,7 @@ python -m pip install -e ".[dev]"
 Then run:
 
 ```bash
-python -m black --check pear
+python -m black --check pear tests
 python -m pytest
 python -m compileall pear
 ```
